@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<style>
+		* {
+			padding: 0;
+			margin: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: Arial, Helvetica, sans-serif
+		}
+
+		.app {
+			padding: 50px 20px;
+		}
+
+		.container {
+			width: 100%;
+			max-width: min(500px, 90%);
+			margin: auto;
+		}
+
+		.hide {
+			display: none;
+		}
+
+		.button {
+			font-size: 16px;
+			font-weight: 500;
+			color: #fff;
+			background-color: #023e8a;
+			padding: 14px 20px;
+			border: 0.1px solid transparent;
+			border-radius: 8px;
+			cursor: pointer;
+		}
+
+		.button-block {
+			width: 100%;
+		}
+
+		form label {
+			font-size: 16px;
+			font-weight: 500;
+			display: block;
+			margin-bottom: 10px;
+		}
+
+		form input[type="text"],
+		form select {
+			font-size: 16px;
+			padding: 12px 20px;
+			width: 100%;
+			border-radius: 8px;
+			border: 1px solid #cccccc;
+		}
+
+		form .form-group:not(:first-of-type) {
+			margin-top: 20px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="app">
+		<div class="container">
+			<form action="#" onsubmit="return false;">
+				<div class="page" id="page-1">
+					<div class="form-group">
+						<label>Pinnacle Odds1</label>
+						<input name="pinnacle-odds-1" type="text">
+					</div>
+					<div class="form-group">
+						<label>Pinnacle Odds2</label>
+						<input name="pinnacle-odds-2" type="text">
+					</div>
+					<div class="form-group">
+						<button onclick="sendRequest('phase-1')" class="button button-block">Submit</button>
+					</div>
+				</div>
+				<div class="page hide" id="page-2">
+					<div class="form-group">
+						<p id="r1"></p>
+						<p id="r2" style="margin-top: 10px;"></p>
+					</div>
+					<div class="form-group">
+						<label>Pick</label>
+						<select name="pick">
+							<option value="1">Pick 1</option>
+							<option value="2">Pick 2</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label>Sportsbook Odds</label>
+						<input name="book" type="text">
+					</div>
+					<div class="form-group">
+						<button onclick="sendRequest('phase-2')" class="button button-block">Submit</button>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</body>
+
+<script>
+
+	async function sendRequest(phase) {
+
+		if (phase === 'phase-1') {
+			let pinnacelOdds1El = document.querySelector('[name="pinnacle-odds-1"]');
+			let pinnacelOdds2El = document.querySelector('[name="pinnacle-odds-2"]');
+
+			if (pinnacelOdds1El.value === '') return alert('Enter Pinnacle Odds 1');
+			if (pinnacelOdds2El.value === '') return alert('Enter Pinnacle Odds 2');
+
+			let response = await xhrRequest({
+				method: 'POST',
+				url: './script.php',
+				body: {
+					phase: phase,
+					pinnacelOdds1: pinnacelOdds1El.value,
+					pinnacelOdds2: pinnacelOdds2El.value
+				}
+			});
+
+			let data = response.data;
+
+			showPage('page-2');
+			document.querySelector('#r1').innerHTML = 'Result = ' + data;
+		}
+		else if (phase === 'phase-2') {
+			let pinnacelOdds1El = document.querySelector('[name="pinnacle-odds-1"]');
+			let pinnacelOdds2El = document.querySelector('[name="pinnacle-odds-2"]');
+			let pickEl = document.querySelector('[name="pick"]');
+			let bookEl = document.querySelector('[name="book"]');
+
+			let response = await xhrRequest({
+				method: 'POST',
+				url: './script.php',
+				body: {
+					phase: phase,
+					elOdds1: pinnacelOdds1El.value,
+					pinnacelOdds2: pinnacelOdds2El.value,
+					pick: pickEl.value,
+					bookEl: bookEl.value
+				}
+			});
+
+			let chunks = response.data.split(',');
+			let r2 = document.querySelector('#r2');
+
+			chunks.forEach(c => {
+				r2.insertAdjacentHTML('beforeend', c + '<br>');
+			});
+
+		}
+
+
+
+	}
+
+	function showPage(id) {
+		let pageEls = document.querySelectorAll('.page');
+		pageEls.forEach(pageEl => {
+			if (pageEl.id == id) pageEl.classList.remove('hide');
+			else pageEl.classList.add('hide');
+		});
+	}
+
+
+	// Other
+
+	var xhrState = {};
+
+	function xhrRequest(param) {
+
+		let defaultHeaders = {
+			'Content-Type': 'application/json',
+			'X-Requested-With': 'XMLHttpRequest'
+		};
+
+		let {
+			method = "GET", url = null, body = null, headers = defaultHeaders, withCredentials = null, stringify = null, progress = null,
+			id = '1'
+		} = param;
+
+		let request = new XMLHttpRequest();
+		request.open(method, url);
+
+		if (withCredentials !== null) request.withCredentials = withCredentials;
+
+		for (let key in headers) {
+			request.setRequestHeader(key, headers[key]);
+		}
+
+
+		return new Promise(function (resolve, reject) {
+
+			try {
+				// start
+				request.upload.onloadstart = function (event) {
+					setXhrState("start", true, id);
+				}
+
+				// progress
+				request.upload.onprogress = function (event) {
+					let total = event.total;
+					let loaded = event.loaded;
+
+					let progressValue = (loaded / total) * 100;
+
+					if (progress !== null) {
+						let progressElement = document.querySelector(`[data-progress="${progress}"]`).setAttribute('style', `--progress:${progressValue}%`);
+					}
+
+					setXhrState("progress", Math.ceil(progressValue), id);
+				}
+
+				// complete
+				request.onload = function (event) {
+
+					let responseText = event.target.responseText;
+					let responseStatus = event.target.status;
+
+					if (progress !== null) {
+						document.querySelector(`[data-progress="${progress}"]`).setAttribute('style', `--progress:0%`);
+					}
+
+					setXhrState("complete", true, id);
+
+					let responseData = responseText;
+
+					try {
+						responseData = responseText;
+
+					}
+					catch (e) { }
+
+					resolve({
+						status: 'success',
+						msg: 'completed',
+						data: responseData
+					});
+
+				}
+
+				// abort
+				request.onabort = function () {
+
+					setXhrState("error", true, id);
+
+					resolve({
+						status: 'fail',
+						msg: 'abort'
+					});
+				}
+
+				// error
+				request.onerror = function (e) {
+					setXhrState("error", true, id);
+					resolve({
+						status: 'fail',
+						msg: 'error'
+					});
+				}
+
+				if (stringify === undefined || stringify === null || stringify === true) {
+					body = JSON.stringify(body);
+				}
+
+				if (body === null) request.send();
+				else request.send(body);
+
+			} catch (err) {
+				setXhrState("error", true);
+				resolve({
+					status: 'fail',
+					msg: 'error'
+				});
+			}
+
+		});
+
+	}
+
+	function setXhrState(statusKey, status, id) {
+
+		if (xhrState[id] === undefined) xhrState[id] = {
+			start: null,
+			progress: null,
+			complete: null,
+			error: null
+		};
+		xhrState[id][statusKey] = status;
+
+		return xhrState;
+	}
+</script>
+
+</html>

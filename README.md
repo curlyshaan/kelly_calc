@@ -13,9 +13,7 @@ Core Concept and Logic :
 8. Output should be in Dataframe for each game ( we can discuss later ) 
 
 Sample JSON data 
-
 game_id = d8d2109c0b170ae7ad28557f818ed5b4
-
 market = spread
 
 API_Link 

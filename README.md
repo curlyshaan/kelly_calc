@@ -1,6 +1,6 @@
 API Docs : https://www.prop-odds.com/features
 
-I believe using API, with one call, you can get all markets for one game_id
+I believe using API, with one call, you can get all markets for each game_id
 
 Core Concept and Logic : 
 1. Lets start with NFL League
